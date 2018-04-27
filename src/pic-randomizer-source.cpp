@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
         }
         if(is_write) std::cout << "\n[randompicturefromfolder], Siborgium, 2018 02 02\n";
     }
-    namespace fs = std::experimental::filesystem;
+    namespace fs = std::filesystem;
     std::string directory = argv[1];
 
     //counting files
