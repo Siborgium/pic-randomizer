@@ -20,6 +20,7 @@ Example:
 `pic-rnd.exe E:/pictures/ -nowrite`
 
 Flags:
+
 | Flag | Value by default | Meaning |
 | ---  | --- | --- |
 | -nowrite | False | Prevents program from writing any output to console |
