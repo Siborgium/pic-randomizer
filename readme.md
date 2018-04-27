@@ -21,7 +21,7 @@ Example:
 
 Flags:
 
-| Flag | Value by default | Meaning |
+| Flag argument | Value by default | Meaning |
 | ---  | --- | --- |
 | -nowrite | False | Prevents program from writing any output to console |
 | -delete | False | Deletes created directory when program closes |
