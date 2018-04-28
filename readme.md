@@ -23,9 +23,11 @@ Flags:
 
 | Flag argument | Value by default | Meaning |
 | ---  | --- | --- |
+| --help | - | Prints help information to stdout |
 | -nowrite | False | Prevents program from writing any output to console |
 | -delete | False | Deletes created directory when program closes |
 | -nocopy | False | Prevents program from creating a directory and copying files, may be useful for getting file paths only |
+| -count=<n> | 10 | Sets N (max limit of random) to <n> |
 
 #### Build
 
