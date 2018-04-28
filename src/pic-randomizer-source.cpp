@@ -16,6 +16,7 @@ namespace os{
 
 int main(int argc, char* argv[]){
     bool is_copy = true, is_write = true, is_delete = false;
+    int required_count = 10;
     if(argc <= 1){
 	std::cout << "Run this program with '--help' argument to get help\n";
     	std::exit(0);	
@@ -23,23 +24,33 @@ int main(int argc, char* argv[]){
     else{
         for(int i = 0; i < argc; i++){
             std::string tmp = argv[i]; 
+	    //simple flags
             if(tmp== "--help"){
                 std::cout
                         << " (O w O) \n"
                         << " <nice to see ya there> \n"
-                        << "Enter path to get 1-10 randomly chosen files from that directory.\n"
+                        << "Enter path to get 1-N (N = 10 by default) randomly chosen files from that directory.\n"
                         << "Use following arguments if needed:\n"
                         << "    -nocopy to prevent this program from copying files\n"
                         << "    -nowrite to prevent this program from writing any text to stdout\n"
                         << "    -nodelete to prevent this program from deleting copied files\n"
+			<< "	-count=<n> to explicitly set N to <n>\n"
                         << "That's all. Have a good day. Enter any character to exit.\n\n"; getchar(); return 0; }
             if(tmp == "-nocopy"){ is_copy = false; is_delete = false; }
             if(tmp == "-nowrite"){ is_write = false; }
             if(tmp == "-delete"){ is_delete = true; }
+	    //with specified number
+	    auto iter = tmp.find("=");
+	    if(iter != std::string::npos){
+		if(tmp.substr(0, iter + 1) == "-count="){
+			auto buf = std::stoi(tmp.substr(iter + 1));
+			required_count = buf < 1 ? 1 : buf; //no negative numbers
+		}
+	    }
         }
-        if(is_write) std::cout << "\n[randompicturefromfolder], Siborgium, 2018 02 02\n";
+        if(is_write) std::cout << "\n[randompicturefromfolder], Siborgium, 2018 04 28\n";
     }
-    namespace fs = std::filesystem;
+    namespace fs = std::experimental::filesystem;
     std::string directory = argv[1];
 
     //counting files
@@ -49,7 +60,7 @@ int main(int argc, char* argv[]){
     
     //filling vector with random generated numbers
     const auto iter = fs::directory_iterator(directory);
-    std::vector<uint32_t> data(os::rand(1, count > 10 ? 10 : count));
+    std::vector<uint32_t> data(os::rand(1, count > required_count ? required_count : count));
     for(auto &d : data){ d = os::rand(1, count); }
 
     //resizing string, appending random generated name for new subdirectory
@@ -77,7 +88,7 @@ int main(int argc, char* argv[]){
         if(is_delete) std::cout << "Write 'y' to purge temp directory\n";
     }
     //ask for char, delete directory if confirmed, exit otherwise
-    if(is_delete){
+    if(is_copy && is_delete){
         char c = ' ';
         while(true){
 	    std::cin >> c;
@@ -88,6 +99,6 @@ int main(int argc, char* argv[]){
 		    break;
 	}
     }
-
+    std::cout << '\n';
     return 0;
 }
