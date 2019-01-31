@@ -1,8 +1,8 @@
-### pic randomizer
+## Ransel
 
 #### What
 
-Pic*tures* randomizer is a small commandline tool, allowing you to easily choose few random files from specified folder. It was created for pictures, but works with any kind of files.
+Ransel is small commandline tool, created in order to simplify selection and copying of random files.
 
 #### Why
 
@@ -14,10 +14,10 @@ Use is simple and quite straightforward. Run the program from commandline, speci
 
 
 Syntax:
-`pic-rnd.exe [path] [flags]`
+`ransel [path] [flags]`
 
 Example:
-`pic-rnd.exe E:/pictures/ -nowrite`
+`ransel pictures/ --nowrite`
 
 Flags:
 
@@ -29,6 +29,3 @@ Flags:
 | -nocopy | False | Prevents program from creating a directory and copying files, may be useful for getting file paths only |
 | -count=`n` | 10 | Sets N (max limit of random) to `n` |
 
-#### Build
-
-I provided few pre-compiled binaries for Windows, but if you use another OS and don't wish to use Wine, run `build.py` or compile the source file by yourself. You will need any C++ compiler, supporting C++17 and filesystem"
