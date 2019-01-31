@@ -2,30 +2,27 @@
 
 #### What
 
-Ransel is small commandline tool, created in order to simplify selection and copying of random files.
+Ransel is small commandline tool, created in order to simplify random selection and copying of files.
 
 #### Why
 
-As texted above, I needed a small tool for everyday use. After few improves I decided to upload it here.
+As mentioned above, I have needed a small utility for everyday use. After few improves I decided to upload it here.
 
-#### How to
+#### Synopsis
 
-Use is simple and quite straightforward. Run the program from commandline, specifying path the directory and (optionally) flags. It will create a directory and copy chosen files there, so you can easily pick it up, and write information about these files.
-
+**ransel** selects *count* files from *DIRECTORY* and then performs certain operations on them according to the given flags.
 
 Syntax:
-`ransel [path] [flags]`
+`ransel [OPTIONS] DIRECTORY`
 
 Example:
-`ransel pictures/ --nowrite`
+`Example: ransel --count=15 --list example/`
 
-Flags:
+Options:
 
-| Flag argument | Value by default | Meaning |
-| ---  | --- | --- |
-| --help | - | Prints help information to stdout |
-| -nowrite | False | Prevents program from writing any output to console |
-| -delete | False | Deletes created directory when program closes |
-| -nocopy | False | Prevents program from creating a directory and copying files, may be useful for getting file paths only |
-| -count=`n` | 10 | Sets N (max limit of random) to `n` |
-
+| Short name | Full name | Default value | Description |
+| ---  | --- | --- | --- |
+| -h | --help | --- | Display help message and quit |
+| -l | --list | --- | List all selected files |
+| -c | --copy | --- | Copy selected files to the directory |
+| -C | --count | 10 | Set count of files to <N> |
