@@ -36,7 +36,7 @@ void count_call(Param& count, unsigned int val);
 
 const char* const help_message = R"(Usage: ransel [OPTIONS] DIRECTORY
 Select random files from DIRECTORY.
-Example: ransel --count=15 example)
+Example: ransel --count=15 --list example/
 
 Options:
   -h  --help  Display this message and quit
@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
     namespace fs = std::filesystem;
 
     if(argc <= 1) {
-	std::cout << "Run this program with '--help' argument to get help\n";
+	std::cout << "ransel: run this program with '--help' argument to get help\n";
     	std::exit(0);
     }
 
@@ -69,75 +69,83 @@ int main(int argc, char* argv[]) {
     auto dirname_src = std::string{ "" };
     parse(parameters, 4, argv, argc, dirname_src);
 
+    if(req_count == 0) {
+	std::cerr << "ransel: requested count is zero, nothing to do here\n";
+	std::exit(0);
+    }
+    
     if(dirname_src.empty()){
-	std::cerr << "ERROR: No directory specified\n";
+	std::cerr << "ransel: no directory specified\n";
 	std::exit(-1);
     }
 
-    if(req_count == 0) {
-	std::cerr << "ERROR: Requested count is expected to be above zero\n";
+    // obtain canonical path
+    auto dir = fs::canonical(dirname_src);
+    if(!fs::exists(dir)) {
+	std::cerr << "ransel: source directory \'" << dir.string() << "\' does not exist\n";
+	std::exit(-1);
+    }
+    if(!fs::is_directory(dir)) {
+	std::cerr << "ransel: \'" << dir.string() << "\' is not a directory\n";
 	std::exit(-1);
     }
     
-    auto dir = fs::absolute(dirname_src).parent_path();
-
-    //counting files
+    // counting files
     auto iters = std::vector<fs::directory_entry>(); // optimize here if possible
     {   // no scope pollution
 	auto count_iter = fs::directory_iterator(dir);
 	for(auto& ci : count_iter){ if(fs::is_regular_file(ci)) { iters.push_back(ci); } }
     }
-
+    
     const auto file_count = iters.size();
     const auto count = std::min(file_count,
 			  static_cast<decltype(iters)::size_type>(req_count));
     if(file_count == 0) { // todo: check if there is more clean solution
-	std::cerr << "ERROR: Directory is empty";
+	std::cerr << "ransel: source directory is empty\n";
 	std::exit(-1);
     }
     
     //filling vector with random generated numbers
     // todo: force indices to be unique
-    auto indices = std::vector<unsigned int>{ count }; // fix narrowing conversion
-    if(file_count == 1) {                              // to unsigned int
-	indices[0] = 0;
+    auto indices = std::vector<unsigned int>{};
+    indices.resize(count);
+    if(file_count == 1) {
+	indices[0] = 0; // we have only one file, no reason to run rng
     } else {
 	for(auto& index : indices) {
 	    index = urand(1, count - 1);
 	}
     }
-    
-    //resizing string, appending random generated name for new subdirectory
-    //1 / 32^26 name collision chance is small enough to ignore
+
     auto destination = fs::path{};
-    do {
-	auto destination_src = dir.string();
-	destination_src.resize(destination_src.size() + 33u);
-	*(destination_src.end() - 33) = fs::path::preferred_separator;
-	for(auto iter = destination_src.end() - 32; iter < destination_src.end() - 1; iter++) {
-	    *iter = urand(static_cast<unsigned char>('a'),
-			  static_cast<unsigned char>('z')); 
-			  }
-	destination_src.back() = fs::path::preferred_separator;
-	destination = fs::path{ std::move(destination_src) };
-    } while(fs::exists(destination));
-    
-    //parsing directory
-    //if index of file exists in our vector, then copy this file (if needed) and write its name (if needed)
-    {
-	std::size_t id = 0;
-	if(copy) {
-	    auto ec = std::error_code{};
-	    if(auto succ = fs::create_directory(destination, ec); !succ) {
-		std::cerr << "ERROR: Failed to create directory " << destination << '\n';
-		std::exit(1);
+    if(copy) { // why do anything if copying is not required?
+	//resizing string, appending random generated name for new subdirectory
+	//1 / 32^26 name collision chance is small enough to ignore
+	do {
+	    auto destination_src = dir.string();
+	    destination_src.resize(destination_src.size() + 33u);
+	    *(destination_src.end() - 33) = fs::path::preferred_separator;
+	    for(auto iter = destination_src.end() - 32; iter < destination_src.end() - 1; iter++) {
+		*iter = urand(static_cast<unsigned char>('a'),
+			      static_cast<unsigned char>('z')); 
 	    }
+	    destination_src.back() = fs::path::preferred_separator;
+	    destination = fs::path{ std::move(destination_src) };
+	} while(fs::exists(destination));
+    }
+
+    // processing obtained data
+    if(copy) { // create directory if needed
+	auto ec = std::error_code{};
+	if(auto succ = fs::create_directory(destination, ec); !succ) {
+	    std::cerr << "ransel: failed to create directory \'" << destination << "\'\n";
+	    std::exit(-1);
 	}
-	for(auto& index : indices) {
-	    auto& iter = iters.at(index);
-	    if(copy) fs::copy(iter.path(), destination);
-	    if(list) std::cout << iter.path().string() << '\n';
-	}
+    }
+    for(auto& index : indices) {
+	auto& iter = iters.at(index);
+	if(copy) fs::copy(iter.path(), destination);
+	if(list) std::cout << iter.path().string() << '\n';
     }
     return 0;
 }
@@ -185,11 +193,11 @@ void parse(Param* params, std::size_t params_count,
 		if(fs::is_directory(dir)) {
 		    dirname = dir.string();
 		} else {
-		    std::cerr << "ERROR: " << argument << " is not a directory\n";
+		    std::cerr << "ransel: \'" << argument << "\' is not a directory\n";
 		    std::exit(-1);
 		}
 	    } else {
-		std::cerr << "ERROR: directory" << argument << " does not exist\n";
+		std::cerr << "ransel: directory \'" << argument << "\' does not exist\n";
 		std::exit(-1);
 	    }
 	} else {
@@ -215,25 +223,38 @@ void parse(Param* params, std::size_t params_count,
 								 value);
 				   e != std::errc()) {
 				    std::cerr <<
-					"ERROR: Failed to decode value of " <<
-					next << " for flag " << argument << '\n';
+					"ransel: failed to decode value of \'" <<
+					next << "\' for flag \'" << argument << "\'\n";
 				    std::exit(-1);
+				} else {
+				    callback(param, value);
 				}
-				callback(param, value);
 			    } else { // argument is an alias and the last in the list
 				// it's value isn't settable and was not provided
 				// therefore it's an error
-				std::cerr << "ERROR: No value provided for flag " << argument << '\n';
+				std::cerr << "ransel: no value provided for flag \'" << argument << "\'\n";
 				std::exit(-1);
 			    }
 			    i++;
 			} break;
 		    
 			case Flag::verbose: {
-			    if(auto res = trailing_int(argument); res) {
-				callback(param, res.value());
+			    if(auto iter = argument.find('='); iter != argument.npos) {
+				if(auto name = argument.substr(0, iter); name == fullname) {
+				    auto source = argument.substr(iter + 1, argument.npos);
+				    unsigned int value = 0u;
+				    if(auto [p, e] = std::from_chars(source.data(), source.data() + source.size(), value); e == std::errc()) {
+					callback(param, value);
+				    } else {
+					std::cerr << "ransel: failed to decode value of \'" << source << "\' for flag \'" << name << "\'\n";
+					std::exit(-1);
+				    }
+				} else {
+				    std::cerr << "ransel: unrecognized flag \'" << name << "'\n";
+				    std::exit(-1);
+				}
 			    } else {
-				std::cerr << "ERROR: Failed to decode value for " << argument << '\n';
+				std::cerr << "ransel: ill-formatted flag \'" << argument << "\'\n";
 				std::exit(-1);
 			    }
 			} break;
