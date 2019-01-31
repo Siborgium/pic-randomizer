@@ -8,20 +8,21 @@
 #include <filesystem>
 #include <algorithm>
 
+enum class Flag : unsigned char { none, terse, verbose };
+enum class Type : unsigned char { boolean, integral };
+
 struct Param {
     using callback_type = void(*)(Param&, unsigned int);
     std::string_view  alias;
     std::string_view  full;
-    bool              settable;
+    Type              type;
     unsigned int      defval;
     callback_type     callback_ptr;
 };
 
-enum class Flag { none, terse, verbose };
-
 // utility
 auto urand(unsigned int from, unsigned int to) -> unsigned int;
-auto starts_with(std::string_view lhs, std::u8string_view rhs) -> bool;
+auto starts_with(std::string_view lhs, std::string_view rhs) -> bool;
 auto trailing_int(std::string_view str) -> std::optional<unsigned int>;
 void parse(Param* params, std::size_t params_count,
 	   char** argv, std::size_t argc,
@@ -56,10 +57,10 @@ int main(int argc, char* argv[]) {
     }
 
     constexpr std::size_t params_count = 4;
-    Param parameters[params_count] = { { "-h", "--help", false, 0, &help_call },
-				       { "-c", "--copy", false, 0, &copy_call },
-				       { "-l", "--list", false, 0, &list_call },
-				       { "-C", "--count", true, 10, &count_call } };
+    Param parameters[params_count] = { { "-h", "--help", Type::boolean, 0, &help_call },
+				       { "-c", "--copy", Type::boolean, 0, &copy_call },
+				       { "-l", "--list", Type::boolean, 0, &list_call },
+				       { "-C", "--count", Type::integral, 10, &count_call } };
     
     auto& copy = parameters[1].defval;
     auto& list = parameters[2].defval;
@@ -78,8 +79,7 @@ int main(int argc, char* argv[]) {
 	std::exit(-1);
     }
     
-    auto dirname = std::string_view{ dirname_src };
-    auto dir = fs::absolute(dirname);
+    auto dir = fs::absolute(dirname_src).parent_path();
 
     //counting files
     auto iters = std::vector<fs::directory_entry>(); // optimize here if possible
@@ -98,8 +98,8 @@ int main(int argc, char* argv[]) {
     
     //filling vector with random generated numbers
     // todo: force indices to be unique
-    auto indices = std::vector<unsigned int>{ count };
-    if(file_count == 1) {
+    auto indices = std::vector<unsigned int>{ count }; // fix narrowing conversion
+    if(file_count == 1) {                              // to unsigned int
 	indices[0] = 0;
     } else {
 	for(auto& index : indices) {
@@ -108,18 +108,19 @@ int main(int argc, char* argv[]) {
     }
     
     //resizing string, appending random generated name for new subdirectory
-    //1 / 64^26 name collision chance is small enough to ignore
+    //1 / 32^26 name collision chance is small enough to ignore
     auto destination = fs::path{};
-    {
-	auto destination_src = fs::current_path().string() + fs::path::preferred_separator;
-	destination_src.resize(destination_src.size() + 32u);
+    do {
+	auto destination_src = dir.string();
+	destination_src.resize(destination_src.size() + 33u);
+	*(destination_src.end() - 33) = fs::path::preferred_separator;
 	for(auto iter = destination_src.end() - 32; iter < destination_src.end() - 1; iter++) {
 	    *iter = urand(static_cast<unsigned char>('a'),
 			  static_cast<unsigned char>('z')); 
-	}
+			  }
 	destination_src.back() = fs::path::preferred_separator;
 	destination = fs::path{ std::move(destination_src) };
-    }
+    } while(fs::exists(destination));
     
     //parsing directory
     //if index of file exists in our vector, then copy this file (if needed) and write its name (if needed)
@@ -132,20 +133,12 @@ int main(int argc, char* argv[]) {
 		std::exit(1);
 	    }
 	}
-	auto from = fs::directory_iterator(dir);
-	std::cerr << "Starting to process indices...\n";
 	for(auto& index : indices) {
-	    if(index >= iters.size()) {
-		std::cerr << "Index " << index << " is out of bounds [0, " << iters.size() - 1 << "]\n";
-		std::exit(-1);
-	    }
 	    auto& iter = iters.at(index);
-	    std::cerr << "Index " << index << "\nIter path " << iter.path().string() << '\n';
 	    if(copy) fs::copy(iter.path(), destination);
 	    if(list) std::cout << iter.path().string() << '\n';
 	}
     }
-    std::cout << '\n';
     return 0;
 }
 
@@ -202,15 +195,15 @@ void parse(Param* params, std::size_t params_count,
 	} else {
 	    for(std::size_t j = 0; j < params_count; j++) {
 		auto& param = params[j];
-		auto& [alias, fullname, settable, defvalue, callback] = param;
+		auto& [alias, fullname, type, defvalue, callback] = param;
 	    
 		bool is_alias = argument == alias;
 		bool is_fullname = starts_with(argument, fullname);
 		if(is_alias || is_fullname) { // if we found a match
-		    if(!settable) {
-			callback(param, defvalue);
-		    } else {
-			switch(kind_of) {
+		    if(type == Type::boolean) {
+			callback(param, defvalue); // Callbacks for boolean flag
+		    } else {                       // are expected to set value
+			switch(kind_of) {          // by themselves
 			case Flag::terse: {
 			    if(i + 1 < argc) {
 				// argument is an alias, therefore the next argument
@@ -222,7 +215,7 @@ void parse(Param* params, std::size_t params_count,
 								 value);
 				   e != std::errc()) {
 				    std::cerr <<
-					"Failed to decode value of " <<
+					"ERROR: Failed to decode value of " <<
 					next << " for flag " << argument << '\n';
 				    std::exit(-1);
 				}
