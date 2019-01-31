@@ -16,7 +16,7 @@ Syntax:
 `ransel [OPTIONS] DIRECTORY`
 
 Example:
-`Example: ransel --count=15 --list example/`
+`ransel --count=15 --list example/`
 
 Options:
 
@@ -25,4 +25,4 @@ Options:
 | -h | --help | --- | Display help message and quit |
 | -l | --list | --- | List all selected files |
 | -c | --copy | --- | Copy selected files to the directory |
-| -C | --count | 10 | Set count of files to \<N\> |
+| -C | --count=N | 10 | Set count of files to \<N\> |
