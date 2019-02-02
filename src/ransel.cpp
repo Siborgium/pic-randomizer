@@ -3,7 +3,6 @@
 #include <charconv>
 #include <string_view>
 #include <string>
-#include <optional>
 #include <random>
 #include <filesystem>
 #include <algorithm>
@@ -23,16 +22,18 @@ struct Param {
 // utility
 auto urand(unsigned int from, unsigned int to) -> unsigned int;
 auto starts_with(std::string_view lhs, std::string_view rhs) -> bool;
-auto trailing_int(std::string_view str) -> std::optional<unsigned int>;
 void parse(Param* params, std::size_t params_count,
 	   char** argv, std::size_t argc,
 	   std::string& dirname);
 
 // callbacks 
 void help_call(Param& dummy1, unsigned int dummy2);
+void version_call(Param& dummy1, unsigned int dummy2);
 void copy_call(Param& copy, unsigned int dummy2);
 void list_call(Param& copy, unsigned int dummy2);
 void count_call(Param& count, unsigned int val);
+
+const char* const version_number = "0.7";
 
 const char* const help_message = R"(Usage: ransel [OPTIONS] DIRECTORY
 Select random files from DIRECTORY.
@@ -67,7 +68,7 @@ int main(int argc, char* argv[]) {
     auto& req_count = parameters[3].defval;
 
     auto dirname_src = std::string{ "" };
-    parse(parameters, 4, argv, argc, dirname_src);
+    parse(parameters, params_count, argv, argc, dirname_src);
 
     if(req_count == 0) {
 	std::cerr << "ransel: requested count is zero, nothing to do here\n";
@@ -104,7 +105,7 @@ int main(int argc, char* argv[]) {
 	std::cerr << "ransel: source directory is empty\n";
 	std::exit(-1);
     }
-    
+
     //filling vector with random generated numbers
     // todo: force indices to be unique
     auto indices = std::vector<unsigned int>{};
@@ -113,10 +114,10 @@ int main(int argc, char* argv[]) {
 	indices[0] = 0; // we have only one file, no reason to run rng
     } else {
 	for(auto& index : indices) {
-	    index = urand(1, count - 1);
+	    index = urand(1, file_count - 1);
 	}
     }
-
+    
     auto destination = fs::path{};
     if(copy) { // why do anything if copying is not required?
 	//resizing string, appending random generated name for new subdirectory
@@ -157,17 +158,6 @@ auto starts_with(std::string_view lhs, std::string_view rhs) -> bool {
 	a++; b++;
     }
     return true;
-}
-
-auto trailing_int(std::string_view str) -> std::optional<unsigned int> {
-    auto e = str.end() - 1, b = str.begin();
-    int ret = 0, mul = 1; bool succ = false;
-    while(*e <= '9' && *e >= '0' && e >= b) {
-	ret += static_cast<int>(*e - '0') * mul;
-	mul *= 10; succ = true;
-	e--;
-    }
-    return succ ? std::optional<unsigned int>{ ret } : std::optional<unsigned int>{ std::nullopt };
 }
 
 auto urand(unsigned int from, unsigned int to) -> unsigned int {
