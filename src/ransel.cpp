@@ -5,7 +5,6 @@
 #include <string>
 #include <random>
 #include <filesystem>
-#include <algorithm>
 
 enum class Flag : unsigned char { none, terse, verbose };
 enum class Type : unsigned char { boolean, integral };
@@ -57,7 +56,11 @@ int main(int argc, char* argv[]) {
 
     auto dirname_src = std::string{ "" };
     parse(parameters, params_count, argv, argc, dirname_src);
-
+    
+    if(!list && !copy) { // Nothing to do, therefore we can just quit
+	std::exit(0);
+    }
+    
     if(req_count == 0) {
 	std::cerr << "ransel: requested count is zero, nothing to do here\n";
 	std::exit(0);
@@ -87,8 +90,8 @@ int main(int argc, char* argv[]) {
     }
     
     const auto file_count = iters.size();
-    const auto count = std::min(file_count,
-			  static_cast<decltype(iters)::size_type>(req_count));
+    const auto count = file_count < req_count ? file_count : req_count;
+    
     if(file_count == 0) { // todo: check if there is more clean solution
 	std::cerr << "ransel: source directory is empty\n";
 	std::exit(-1);
@@ -251,14 +254,13 @@ Select random files from DIRECTORY.
 Example: ransel --count=15 --list example/
 
 Options:
-  -h  --help  Display this message and quit
-  -l  --list  List all selected files to stdout
-              Enabled by default, set to 0 in order to disable
-  -c  --copy  Copy selected files to the directory
-              Directory name is 32-characters long random character sequence
-              Enabled by default, set to 0 in order to disable
-  -C  --count Count of files to select
-              Set to 10 by default)";
+  -h  --help     Display this message and quit
+  -v  --version  Display version and quit
+  -l  --list     List all selected files to stdout
+  -c  --copy     Copy selected files to the directory
+                  Directory name is 32-characters long random character sequence
+  -C  --count    Count of files to select
+                  Set to 10 by default)";
     
 void help_call(Param& dummy1, unsigned int dummy2) {
     std::cout << help_message << '\n';

@@ -23,6 +23,7 @@ Options:
 | Short name | Full name | Default value | Description |
 | ---  | --- | --- | --- |
 | -h | --help | --- | Display help message and quit |
+| -v | --version | --- | Display version and quit |
 | -l | --list | --- | List all selected files |
 | -c | --copy | --- | Copy selected files to the directory |
 | -C | --count=N | 10 | Set count of files to \<N\> |
