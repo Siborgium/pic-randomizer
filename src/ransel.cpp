@@ -10,14 +10,7 @@
 enum class Flag : unsigned char { none, terse, verbose };
 enum class Type : unsigned char { boolean, integral };
 
-struct Param {
-    using callback_type = void(*)(Param&, unsigned int);
-    std::string_view  alias;
-    std::string_view  full;
-    Type              type;
-    unsigned int      defval;
-    callback_type     callback_ptr;
-};
+struct Param;
 
 // utility
 auto urand(unsigned int from, unsigned int to) -> unsigned int;
@@ -32,6 +25,15 @@ void version_call(Param& dummy1, unsigned int dummy2);
 void copy_call(Param& copy, unsigned int dummy2);
 void list_call(Param& copy, unsigned int dummy2);
 void count_call(Param& count, unsigned int val);
+
+struct Param {
+    using callback_type = decltype(&help_call);
+    std::string_view  alias;
+    std::string_view  full;
+    Type              type;
+    unsigned int      defval;
+    callback_type     callback_ptr;
+};
 
 int main(int argc, char* argv[]) {
     namespace fs = std::filesystem;
