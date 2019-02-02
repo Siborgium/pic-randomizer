@@ -33,22 +33,6 @@ void copy_call(Param& copy, unsigned int dummy2);
 void list_call(Param& copy, unsigned int dummy2);
 void count_call(Param& count, unsigned int val);
 
-const char* const version_number = "0.7";
-
-const char* const help_message = R"(Usage: ransel [OPTIONS] DIRECTORY
-Select random files from DIRECTORY.
-Example: ransel --count=15 --list example/
-
-Options:
-  -h  --help  Display this message and quit
-  -l  --list  List all selected files to stdout
-              Enabled by default, set to 0 in order to disable
-  -c  --copy  Copy selected files to the directory
-              Directory name is 32-characters long random character sequence
-              Enabled by default, set to 0 in order to disable
-  -C  --count Count of files to select
-              Set to 10 by default)";
-    
 int main(int argc, char* argv[]) {
     namespace fs = std::filesystem;
 
@@ -57,15 +41,17 @@ int main(int argc, char* argv[]) {
     	std::exit(0);
     }
 
-    constexpr std::size_t params_count = 4;
-    Param parameters[params_count] = { { "-h", "--help", Type::boolean, 0, &help_call },
-				       { "-c", "--copy", Type::boolean, 0, &copy_call },
-				       { "-l", "--list", Type::boolean, 0, &list_call },
-				       { "-C", "--count", Type::integral, 10, &count_call } };
+    constexpr std::size_t params_count = 5;
+    constexpr unsigned int dummy = 0;
+    Param parameters[params_count] = { { "-c", "--copy", Type::boolean, dummy, &copy_call },
+				       { "-l", "--list", Type::boolean, dummy, &list_call },
+				       { "-C", "--count", Type::integral, 10, &count_call },
+				       { "-h", "--help", Type::boolean, dummy, &help_call },
+				       { "-v", "--version", Type::boolean, dummy, &version_call } };
     
-    auto& copy = parameters[1].defval;
-    auto& list = parameters[2].defval;
-    auto& req_count = parameters[3].defval;
+    auto& copy = parameters[0].defval;
+    auto& list = parameters[1].defval;
+    auto& req_count = parameters[2].defval;
 
     auto dirname_src = std::string{ "" };
     parse(parameters, params_count, argv, argc, dirname_src);
@@ -257,8 +243,21 @@ void parse(Param* params, std::size_t params_count,
 	}
     }
 }
+					 
+const char* const help_message = R"(Usage: ransel [OPTIONS] DIRECTORY
+Select random files from DIRECTORY.
+Example: ransel --count=15 --list example/
 
-
+Options:
+  -h  --help  Display this message and quit
+  -l  --list  List all selected files to stdout
+              Enabled by default, set to 0 in order to disable
+  -c  --copy  Copy selected files to the directory
+              Directory name is 32-characters long random character sequence
+              Enabled by default, set to 0 in order to disable
+  -C  --count Count of files to select
+              Set to 10 by default)";
+    
 void help_call(Param& dummy1, unsigned int dummy2) {
     std::cout << help_message << '\n';
     std::exit(0);
@@ -274,4 +273,15 @@ void list_call(Param& list, unsigned int dummy2) {
 
 void count_call(Param& count, unsigned int val) {
     count.defval = val;
+}
+
+const char* const version_number = "0.7";
+const char* const author = "Siborgium (Sergey Smirnykh)";
+const char* const license = "MIT License";
+
+void version_call(Param& dummy1, unsigned int dummy2) {
+    std::cout << "ransel: " << version_number
+	      << "\n    This software is distributed under " << license
+	      << "\n    It was written by " << author << ", 2019\n";
+    std::exit(0);
 }
