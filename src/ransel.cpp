@@ -24,6 +24,7 @@ void version_call(Param& dummy1, unsigned int dummy2);
 void copy_call(Param& copy, unsigned int dummy2);
 void list_call(Param& copy, unsigned int dummy2);
 void count_call(Param& count, unsigned int val);
+void strict_call(Param& strict, unsigned int dummy2);
 
 struct Param {
     using callback_type = decltype(&help_call);
@@ -42,17 +43,19 @@ int main(int argc, char* argv[]) {
     	std::exit(0);
     }
 
-    constexpr std::size_t params_count = 5;
+    constexpr std::size_t params_count = 6;
     constexpr unsigned int dummy = 0;
     Param parameters[params_count] = { { "-c", "--copy", Type::boolean, dummy, &copy_call },
 				       { "-l", "--list", Type::boolean, dummy, &list_call },
 				       { "-C", "--count", Type::integral, 10, &count_call },
+				       { "-s", "--strict", Type::boolean, dummy, &strict_call },
 				       { "-h", "--help", Type::boolean, dummy, &help_call },
-				       { "-v", "--version", Type::boolean, dummy, &version_call } };
+				       { "-v", "--version", Type::boolean, dummy, &version_call }};
     
     auto& copy = parameters[0].defval;
     auto& list = parameters[1].defval;
     auto& req_count = parameters[2].defval;
+    auto& strict = parameters[3].defval;
 
     auto dirname_src = std::string{ "" };
     parse(parameters, params_count, argv, argc, dirname_src);
@@ -90,11 +93,18 @@ int main(int argc, char* argv[]) {
     }
     
     const auto file_count = iters.size();
-    const auto count = file_count < req_count ? file_count : req_count;
     
     if(file_count == 0) { // todo: check if there is more clean solution
 	std::cerr << "ransel: source directory is empty\n";
 	std::exit(-1);
+    }
+
+    unsigned int count = 0;
+    if(auto lt = file_count < req_count; strict && lt) { // set count or fail
+	std::cerr << "ransel: the requested number of files exceeds the number of present files [--strict]\n";
+	std::exit(-1);
+    } else {
+	count = lt ? file_count : req_count;
     }
 
     //filling vector with random generated numbers
@@ -249,23 +259,6 @@ void parse(Param* params, std::size_t params_count,
     }
 }
 					 
-const char* const help_message = R"(Usage: ransel [OPTIONS] DIRECTORY
-Select random files from DIRECTORY.
-Example: ransel --count=15 --list example/
-
-Options:
-  -h  --help     Display this message and quit
-  -v  --version  Display version and quit
-  -l  --list     List all selected files to stdout
-  -c  --copy     Copy selected files to the directory
-                  Directory name is 32-characters long random character sequence
-  -C  --count    Count of files to select
-                  Set to 10 by default)";
-    
-void help_call(Param& dummy1, unsigned int dummy2) {
-    std::cout << help_message << '\n';
-    std::exit(0);
-}
 
 void copy_call(Param& copy, unsigned int dummy2) {
     copy.defval = 1;
@@ -279,7 +272,11 @@ void count_call(Param& count, unsigned int val) {
     count.defval = val;
 }
 
-const char* const version_number = "0.7";
+void strict_call(Param& strict, unsigned int dummy2) {
+    strict.defval = 1;
+}
+
+const char* const version_number = "0.7.1";
 const char* const author = "Siborgium (Sergey Smirnykh)";
 const char* const license = "MIT License";
 
@@ -287,5 +284,25 @@ void version_call(Param& dummy1, unsigned int dummy2) {
     std::cout << "ransel: " << version_number
 	      << "\n    This software is distributed under " << license
 	      << "\n    It was written by " << author << ", 2019\n";
+    std::exit(0);
+}
+
+const char* const help_message = R"(Usage: ransel [OPTIONS] DIRECTORY
+Select random files from DIRECTORY.
+Example: ransel --count=15 --list example/
+
+Options:
+  -h  --help     Display this message and quit
+  -v  --version  Display version and quit
+  -l  --list     List all selected files to stdout
+  -c  --copy     Copy selected files to the directory
+                  Directory name is 32-characters long random character sequence
+  -C  --count    Count of files to select
+                  Set to 10 by default
+  -s  --strict   Exit if the requested number of files 
+                  exceeds the number of existing files)";
+    
+void help_call(Param& dummy1, unsigned int dummy2) {
+    std::cout << help_message << '\n';
     std::exit(0);
 }
