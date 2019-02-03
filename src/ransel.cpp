@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
 
     auto dirname_src = std::string{ "" };
     parse(parameters, params_count, argv, argc, dirname_src);
-    
+
     if(!list && !copy) { // Nothing to do, therefore we can just quit
 	std::exit(0);
     }
@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
 	std::cerr << "ransel: \'" << dir.string() << "\' is not a directory\n";
 	std::exit(-1);
     }
-    
+
     // counting files
     auto iters = std::vector<fs::directory_entry>(); // optimize here if possible
     {   // no scope pollution
@@ -198,11 +198,17 @@ void parse(Param* params, std::size_t params_count,
 	    
 		bool is_alias = argument == alias;
 		bool is_fullname = starts_with(argument, fullname);
-		if(is_alias || is_fullname) { // if we found a match
-		    if(type == Type::boolean) {
-			callback(param, defvalue); // Callbacks for boolean flag
-		    } else {                       // are expected to set value
-			switch(kind_of) {          // by themselves
+		bool starts_with_fullname = starts_with(argument, fullname);
+		if(is_alias || starts_with_fullname) { // if we found a match
+                    if(type == Type::boolean) {
+                        if(is_alias || argument == fullname) {
+                            callback(param, defvalue); // set flag
+                        } else {
+                            std::cerr << "ransel: unrecognized flag \'" << argument << "'\n";
+                            std::exit(-1);
+                        }
+		    } else {                       
+			switch(kind_of) {
 			case Flag::terse: {
 			    if(i + 1 < argc) {
 				// argument is an alias, therefore the next argument
